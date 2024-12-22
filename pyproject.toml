@@ -28,8 +28,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/ggrab"
-Issues = "https://github.com/yourusername/ggrab/issues"
+Homepage = "https://github.com/keizo/ggrab"
+Issues = "https://github.com/keizo/ggrab/issues"
 
 [build-system]
 requires = ["setuptools>=45", "wheel"]

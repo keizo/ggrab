@@ -40,3 +40,6 @@ include-package-data = true
 
 [project.scripts]
 ggrab = "ggrab.ggrab:main"
+
+[tool.setuptools.package_data]
+ggrab = ["README.md"]

@@ -1,4 +1,4 @@
-# ggrab
+# ggrab - Grug Grab Tool
 
 A CLI tool for manually building context to paste into llm chats. `ggrab` gathers functions, classes, or entire files wraps them with xml and copies it to the clipboard.
 
@@ -106,6 +106,10 @@ autoload -U compinit && compinit
 autoload -U bashcompinit && bashcompinit
 eval "$(register-python-argcomplete ggrab)"
 ```
+
+## Acknowledgments
+
+- Developed -- ok, prompted into existance by Claude 3.5, o1 pro. Fixed up to working order by [Keizo Gates](https://github.com/keizo) making [GrugNotes](https://grugnotes.com) :)
 
 ## License
 

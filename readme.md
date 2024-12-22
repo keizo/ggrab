@@ -14,10 +14,16 @@ A CLI tool for manually building context to paste into llm chats. `ggrab` gather
 
 ## Quick Start
 
-1. **Install Dependencies:**
+1. **Install:**
 ```bash
-pip install ggrab
+pip install ggrab    # Basic install
+# or
+pipx install ggrab   # Recommended
 ```
+
+> **Why pipx?** The `pipx` install is recommended because it:
+> - Won't interfere with other Python projects (creates its own venv)
+> - Makes ggrab available globally in your terminal
 
 2. **Setup:**
 

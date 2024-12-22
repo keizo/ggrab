@@ -319,8 +319,6 @@ def items_completer(prefix, parsed_args, **kwargs):
     file_suggestions = _file_completions(prefix)
     func_suggestions = []
     if active_file and os.path.isfile(active_file):
-        with open("/tmp/ggrab_debug.log", "a") as dbg:
-            dbg.write(f"[DEBUG] Getting symbols for active file: {active_file}\n")
         all_funcs = get_symbols_for_file(active_file)
         func_suggestions = [f for f in all_funcs if f.startswith(prefix)]
 
@@ -330,14 +328,6 @@ def items_completer(prefix, parsed_args, **kwargs):
     if len(suggestions) == 1 and os.path.isfile(suggestions[0]):
         from threading import Thread
         Thread(target=get_symbols_for_file, args=(suggestions[0],), daemon=True).start()
-
-    with open("/tmp/ggrab_debug.log", "a") as dbg:
-        dbg.write(
-            f"[DEBUG] prefix='{prefix}', active_file='{active_file}', "
-            f"file_suggestions={file_suggestions}, func_suggestions={func_suggestions}, "
-            f"suggestions={suggestions}\n"
-            f"parsed_args={parsed_args}, kwargs={kwargs}\n"
-        )
 
     return suggestions
 

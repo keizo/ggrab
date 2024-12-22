@@ -16,14 +16,24 @@ A CLI tool for manually building context to paste into llm chats. `ggrab` gather
 
 1. **Install Dependencies:**
 ```bash
-pip install argcomplete pyperclip tiktoken esprima
+pip install ggrab
 ```
 
 2. **Setup:**
-```bash
 
-# For bash/zsh autocompletion:
+Add the following to your shell config file (`~/.bashrc`, `~/.zshrc`, or equivalent):
+```bash
+# Enable ggrab autocompletion
 eval "$(register-python-argcomplete ggrab)"
+```
+
+Then reload your shell configuration:
+```bash
+# For bash
+source ~/.bashrc
+
+# For zsh
+source ~/.zshrc
 ```
 
 ## Usage

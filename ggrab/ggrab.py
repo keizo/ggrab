@@ -570,18 +570,27 @@ def is_dir_candidate(token):
     """Return True if `token` is an existing directory."""
     return os.path.isdir(token)
 
-def collect_code_files_in_dir(directory):
+def collect_code_files_in_dir(directory, ignore_pattern=None):
     """
-    Recursively gather all files in 'directory' whose extension 
-    is in SUPPORTED_EXTENSIONS. Returns a list of absolute paths.
+    Recursively gather all files in 'directory' whose extension
+    is in SUPPORTED_EXTENSIONS. Optionally skip files matching ignore regex.
+    Returns a list of absolute paths.
     """
     code_files = []
+    ignore_re = re.compile(ignore_pattern) if ignore_pattern else None
+
     for root, dirs, files in os.walk(directory):
         for filename in files:
+            filepath = os.path.join(root, filename)
+
+            # Skip if path matches ignore pattern
+            if ignore_re and ignore_re.search(filepath):
+                continue
+
             ext = os.path.splitext(filename)[1].lower()
             if ext in SUPPORTED_EXTENSIONS:
-                filepath = os.path.join(root, filename)
                 code_files.append(os.path.abspath(filepath))
+
     return code_files
 
 
@@ -597,6 +606,14 @@ def main():
         nargs="*",
         help="Files and function names intermixed. Each file remains 'active' until the next file."
     )
+    # the ignore flag
+    parser.add_argument(
+        "--ignore",
+        "-i",
+        default=None,
+        help="Regex to ignore files (by name or path) when scanning directories."
+    )
+
     if 'argcomplete' in sys.modules:
         items_arg.completer = items_completer
         argcomplete.autocomplete(parser)
@@ -613,8 +630,8 @@ def main():
     current_file = None
     for item in args.items:
         if is_dir_candidate(item):
-            # Expand all code files in the directory
-            dir_files = collect_code_files_in_dir(item)
+            # Pass the ignore pattern when scanning directories
+            dir_files = collect_code_files_in_dir(item, ignore_pattern=args.ignore)
             for f in dir_files:
                 results.setdefault(f, [])
             current_file = None  # Reset active file after directory

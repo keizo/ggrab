@@ -28,6 +28,7 @@ import json
 import argparse
 from pathlib import Path
 import time
+import fnmatch
 
 try:
     import argcomplete
@@ -237,6 +238,42 @@ SUPPORTED_EXTENSIONS = {
     ".mysql",  # MySQL
     ".sqlite", # SQLite
 
+}
+
+SPECIAL_FILENAMES = {
+    # Build & Project Files
+    "Makefile",
+    "makefile",
+    "Dockerfile",
+    "dockerfile",
+    "configure",
+    "Rakefile",
+    "Gemfile",
+
+    # Config Files
+    ".env",
+    ".gitignore",
+    ".dockerignore",
+    ".editorconfig",
+    ".eslintrc",
+    ".prettierrc",
+    ".babelrc",
+    ".npmrc",
+    ".yarnrc",
+
+    # CI/CD & DevOps
+    "Jenkinsfile",
+    "Vagrantfile",
+    "Procfile",
+
+    # Documentation
+    "README",
+    "LICENSE",
+    "CHANGELOG",
+    "CONTRIBUTING",
+    "AUTHORS",
+    "PATENTS",
+    "NOTICE"
 }
 
 
@@ -573,22 +610,32 @@ def is_dir_candidate(token):
 def collect_code_files_in_dir(directory, ignore_pattern=None):
     """
     Recursively gather all files in 'directory' whose extension
-    is in SUPPORTED_EXTENSIONS. Optionally skip files matching ignore regex.
-    Returns a list of absolute paths.
+    is in SUPPORTED_EXTENSIONS or whose filename is in SPECIAL_FILENAMES.
+    If ignore_pattern is provided, interpret it as a shell glob and skip matching files.
     """
     code_files = []
-    ignore_re = re.compile(ignore_pattern) if ignore_pattern else None
+
+    ignore_re = None
+    if ignore_pattern:
+        # Convert the user's shell glob pattern into a Python regex
+        glob_regex = fnmatch.translate(ignore_pattern)
+        try:
+            ignore_re = re.compile(glob_regex)
+        except re.error as e:
+            print(f"[WARN] Invalid shell glob for --ignore: '{ignore_pattern}' => {e}")
+            ignore_re = None
 
     for root, dirs, files in os.walk(directory):
         for filename in files:
             filepath = os.path.join(root, filename)
 
-            # Skip if path matches ignore pattern
+            # If ignoring pattern is set, skip if it matches
             if ignore_re and ignore_re.search(filepath):
                 continue
 
+            # Check both extension and special filenames
             ext = os.path.splitext(filename)[1].lower()
-            if ext in SUPPORTED_EXTENSIONS:
+            if ext in SUPPORTED_EXTENSIONS or filename in SPECIAL_FILENAMES:
                 code_files.append(os.path.abspath(filepath))
 
     return code_files

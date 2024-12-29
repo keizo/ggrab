@@ -53,6 +53,9 @@ ggrab file.py function1 function2
 
 # Mix multiple files and functions
 ggrab file1.py func1 func2 file2.js func3
+
+# Now supports full directories (entire files only)
+ggrab directory
 ```
 
 Press `TAB` at any time for smart autocompletion:

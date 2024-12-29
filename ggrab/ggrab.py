@@ -45,6 +45,201 @@ _pyperclip = None
 _tiktoken = None
 
 
+SUPPORTED_EXTENSIONS = {
+    # Python
+    ".py",
+    ".pyi",   # Type stubs
+    ".pyw",   # Python on Windows
+
+    # JavaScript
+    ".js",
+    ".mjs",   # ES modules
+    ".cjs",   # CommonJS modules
+    ".jsx",   # React JSX
+
+    # TypeScript
+    ".ts",
+    ".tsx",   # React TSX
+
+    # HTML/CSS/Other Web
+    ".html",
+    ".htm",
+    ".xhtml",
+    ".shtml",
+    ".css",
+    ".scss",
+    ".sass",
+
+    # Java & JVM languages
+    ".java",
+    ".scala",
+    ".kt",    # Kotlin
+    ".kts",   # Kotlin script
+
+    # C / C++
+    ".c",
+    ".h",
+    ".cpp",
+    ".hpp",
+    ".cc",
+    ".hh",
+    ".cxx",
+    ".hxx",
+
+    # C#
+    ".cs",
+
+    # Go
+    ".go",
+
+    # Rust
+    ".rs",
+    ".rlib",
+
+    # PHP
+    ".php",
+    ".phtml",
+    ".php4",
+    ".php5",
+    ".php7",
+    ".php8",
+
+    # Ruby
+    ".rb",
+    ".erb",
+
+    # Perl
+    ".pl",
+    ".pm",
+    ".t",     # Perl test scripts
+
+    # Shell
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".fish",
+
+    # Lua
+    ".lua",
+
+    # Swift
+    ".swift",
+
+    # R
+    ".R",
+    ".r",
+    ".Rmd",   # R Markdown (mix of code + text)
+
+    # Julia
+    ".jl",
+
+    # Haskell
+    ".hs",
+    ".lhs",   # Literate Haskell
+
+    # Erlang/Elixir
+    ".erl",
+    ".hrl",
+    ".ex",
+    ".exs",
+
+    # Dart
+    ".dart",
+
+    # YAML / JSON / TOML (often config, but can contain code-like content)
+    ".yaml",
+    ".yml",
+    ".json",
+    ".toml",
+
+    # Docker / Container
+    ".dockerfile",  # Not always standard, often just 'Dockerfile'
+    # If you want to capture Dockerfiles that have no extension:
+    # you might handle them by name-check rather than extension
+
+    # Make / Build
+    ".mk",     # Makefiles (sometimes just named `Makefile` with no extension)
+    ".cmake",
+    ".gradle",
+    ".csproj", # C# project files
+    ".vbproj", # VB project files
+    ".nuspec",
+
+    # Documentation & Text
+    ".txt",    # Plain text
+    ".md",     # Markdown
+    ".mdx",    # MDX (Markdown with JSX)
+    ".rst",    # reStructuredText
+    ".adoc",   # AsciiDoc
+    ".textile", # Textile markup
+    ".wiki",   # Wiki markup
+
+    # Misc
+    ".sql",
+    ".dbml",
+    ".vb",
+    ".pas",    # Pascal / Delphi
+    ".pp",     # Free Pascal
+
+    # Web Development
+    ".vue",    # Vue.js components
+    ".svelte", # Svelte components
+    ".astro",  # Astro components
+    ".liquid", # Liquid templates
+    ".ejs",    # Embedded JavaScript templates
+    ".pug",    # Pug templates
+    ".jade",   # Jade templates (old name for Pug)
+    ".haml",   # Haml templates
+    ".twig",   # Twig templates
+    ".xml",    # XML files
+    ".svg",    # SVG files
+    ".less",   # Less CSS
+    ".styl",   # Stylus CSS
+
+    # Config & Data
+    ".ini",    # INI configuration
+    ".env",    # Environment variables
+    ".conf",   # Configuration files
+    ".cfg",    # Configuration files
+    ".properties", # Java properties
+    ".xml",    # XML files
+    ".graphql", # GraphQL schemas
+    ".proto",   # Protocol Buffers
+
+    # Shell & Scripts
+    ".ps1",    # PowerShell
+    ".psm1",   # PowerShell module
+    ".bat",    # Windows batch
+    ".cmd",    # Windows command
+    ".ksh",    # Korn shell
+
+    # Infrastructure & DevOps
+    ".tf",     # Terraform
+    ".hcl",    # HashiCorp Configuration Language
+    ".nomad",  # Nomad job files
+    ".vault",  # Vault config
+    ".helm",   # Helm charts
+    ".k8s",    # Kubernetes manifests
+    ".yaml.tpl", # YAML templates
+    
+    # Documentation & Text (expanding existing)
+    ".org",    # Org mode
+    ".pod",    # Perl POD documentation
+    ".tex",    # LaTeX documents
+    ".nfo",    # Info files
+    ".log",    # Log files
+    ".man",    # Manual pages
+
+    # Database
+    ".ddl",    # Data Definition Language
+    ".dml",    # Data Manipulation Language
+    ".pgsql",  # PostgreSQL
+    ".mysql",  # MySQL
+    ".sqlite", # SQLite
+
+}
+
+
 def lazy_import_ast():
     global _ast
     if _ast is None:
@@ -370,12 +565,32 @@ def count_tokens(text):
         return 0
 
 
+
+def is_dir_candidate(token):
+    """Return True if `token` is an existing directory."""
+    return os.path.isdir(token)
+
+def collect_code_files_in_dir(directory):
+    """
+    Recursively gather all files in 'directory' whose extension 
+    is in SUPPORTED_EXTENSIONS. Returns a list of absolute paths.
+    """
+    code_files = []
+    for root, dirs, files in os.walk(directory):
+        for filename in files:
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in SUPPORTED_EXTENSIONS:
+                filepath = os.path.join(root, filename)
+                code_files.append(os.path.abspath(filepath))
+    return code_files
+
+
 # -------------------
 # Main
 # -------------------
 def main():
     parser = argparse.ArgumentParser(
-        description="ggrab: file1.py funcA funcB file2.py funcC => extracts code from each file or specific functions."
+        description="ggrab: file1.py funcA funcB file2.py funcC => extracts code from each file or specific functions. Also supports directories."
     )
     items_arg = parser.add_argument(
         "items",
@@ -397,7 +612,13 @@ def main():
     results = {}  # file -> list of function names
     current_file = None
     for item in args.items:
-        if is_file_candidate(item):
+        if is_dir_candidate(item):
+            # Expand all code files in the directory
+            dir_files = collect_code_files_in_dir(item)
+            for f in dir_files:
+                results.setdefault(f, [])
+            current_file = None  # Reset active file after directory
+        elif is_file_candidate(item):
             current_file = item
             results.setdefault(current_file, [])
         else:

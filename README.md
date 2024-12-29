@@ -56,6 +56,11 @@ ggrab file1.py func1 func2 file2.js func3
 
 # Now supports full directories (entire files only)
 ggrab directory
+
+# Skip files matching a regex pattern
+ggrab directory/ --ignore '\.test\.'    # Skip test files
+ggrab src/ --ignore 'node_modules'      # Skip node_modules directory
+ggrab . --ignore '(\.test\.|\.git)'     # Skip multiple patterns
 ```
 
 Press `TAB` at any time for smart autocompletion:

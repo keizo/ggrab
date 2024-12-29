@@ -630,6 +630,7 @@ def main():
     summary_lines = []
     file_token_data = {}
     grand_total_tokens = 0
+    grand_total_lines = 0  # Add line counter
 
     # Extract code and count tokens all in one pass
     current_file = None
@@ -638,8 +639,13 @@ def main():
     for f, funcs in results.items():
         snippet_list, success = extract_file(f, funcs)
 
-        # Bookkeeping
-        file_token_data[f] = {"total_tokens": 0, "functions": {}, "error": not success}
+        # Update bookkeeping to include lines
+        file_token_data[f] = {
+            "total_tokens": 0,
+            "total_lines": 0,  
+            "functions": {},
+            "error": not success
+        }
 
         # Summaries
         if funcs:
@@ -651,11 +657,17 @@ def main():
         file_content = []
         for (sym, code) in snippet_list:
             n_tokens = count_tokens(code)
-            file_token_data[f]["total_tokens"] += n_tokens
+            lines_in_snippet = code.count('\n') + 1  # Count lines
 
-            # Track function-level tokens if applicable
+            file_token_data[f]["total_tokens"] += n_tokens
+            file_token_data[f]["total_lines"] += lines_in_snippet
+
+            # Track function-level tokens and lines if applicable
             if sym not in (None, "whole-file", "error"):
-                file_token_data[f]["functions"][sym] = n_tokens
+                file_token_data[f]["functions"][sym] = {
+                    "tokens": n_tokens,
+                    "lines": lines_in_snippet,
+                }
             
             file_content.append(code)
 
@@ -664,28 +676,39 @@ def main():
         final_blocks.append(f"<file name=\"{f}\">\n{combined_content}\n</file>")
 
         grand_total_tokens += file_token_data[f]["total_tokens"]
+        grand_total_lines += file_token_data[f]["total_lines"]  # Add to total
 
     # Print combined summary with token counts
     print("Gathered code from:")
     for f in results.keys():
         ext = os.path.splitext(f)[1].lower()
+        total_tokens = file_token_data[f]["total_tokens"]
+        total_lines = file_token_data[f]["total_lines"]
+        
         if file_token_data[f]["error"]:
             print(f"  - {f}: No matching symbols found for {results[f]}")
             continue
             
         if results[f]:  # if there are specific functions
             if ext not in ('.py', '.js'):
-                print(f"  - {f}: Symbol extraction not supported for {ext} files. Returning entire file. ({file_token_data[f]['total_tokens']} tokens)")
+                print(f"  - {f}: Symbol extraction not supported for {ext} files. "
+                      f"Returning entire file. ({total_lines} lines, {total_tokens} tokens)")
             else:
-                functions_str = f", functions: {', '.join(results[f])}"
-                total = file_token_data[f]["total_tokens"]
-                print(f"  - {f}{functions_str} ({total} tokens)")
+                func_parts = []
+                for func_name in results[f]:
+                    fdata = file_token_data[f]["functions"].get(func_name, {})
+                    func_lines = fdata.get("lines", 0)
+                    func_tokens = fdata.get("tokens", 0)
+                    func_parts.append(f"{func_name} [{func_lines} lines, {func_tokens} tokens]")
+                func_str = ", ".join(func_parts)
+                print(f"  - {f}, functions: {func_str} "
+                      f"(file total: {total_lines} lines, {total_tokens} tokens)")
         else:
-            total = file_token_data[f]["total_tokens"]
-            print(f"  - {f}, entire file ({total} tokens)")
+            print(f"  - {f}, entire file ({total_lines} lines, {total_tokens} tokens)")
 
-    # Add grand total
-    print(f"\nTotal tokens across all files: {grand_total_tokens}")
+    # Updated totals
+    print(f"\nTotal lines across all files: {grand_total_lines}")
+    print(f"Total tokens across all files: {grand_total_tokens}")
 
     print("\n===== Combined Snippets (copied to clipboard) =====\n")
 

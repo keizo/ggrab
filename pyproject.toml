@@ -1,6 +1,6 @@
 [project]
 name = "ggrab"
-version = "0.1.0a14"
+version = "0.1.0a15"
 description = "A CLI tool for extracting and sharing code files and functions. A manual context builder for pasting into llms."
 readme = "README.md"
 license = { text = "MIT" }

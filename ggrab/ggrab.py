@@ -750,7 +750,7 @@ def main():
         grand_total_lines += file_token_data[f]["total_lines"]  # Add to total
 
     # Print combined summary with token counts
-    print("Gathered code from:")
+    print("Grabbed code from:")
     for f in results.keys():
         ext = os.path.splitext(f)[1].lower()
         total_tokens = file_token_data[f]["total_tokens"]

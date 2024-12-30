@@ -607,30 +607,32 @@ def is_dir_candidate(token):
     """Return True if `token` is an existing directory."""
     return os.path.isdir(token)
 
-def collect_code_files_in_dir(directory, ignore_pattern=None):
+def collect_code_files_in_dir(directory, ignore_patterns=None):
     """
     Recursively gather all files in 'directory' whose extension
     is in SUPPORTED_EXTENSIONS or whose filename is in SPECIAL_FILENAMES.
-    If ignore_pattern is provided, interpret it as a shell glob and skip matching files.
+    If ignore_patterns is provided, interpret them as shell globs and skip matching files.
     """
     code_files = []
 
-    ignore_re = None
-    if ignore_pattern:
-        # Convert the user's shell glob pattern into a Python regex
-        glob_regex = fnmatch.translate(ignore_pattern)
+    # Handle multiple patterns
+    if not ignore_patterns:
+        ignore_patterns = []
+
+    ignore_res = []
+    for pat in ignore_patterns:
         try:
-            ignore_re = re.compile(glob_regex)
+            glob_regex = fnmatch.translate(pat)
+            ignore_res.append(re.compile(glob_regex))
         except re.error as e:
-            print(f"[WARN] Invalid shell glob for --ignore: '{ignore_pattern}' => {e}")
-            ignore_re = None
+            print(f"[WARN] Invalid shell glob for --ignore pattern '{pat}': {e}")
 
     for root, dirs, files in os.walk(directory):
         for filename in files:
             filepath = os.path.join(root, filename)
 
-            # If ignoring pattern is set, skip if it matches
-            if ignore_re and ignore_re.search(filepath):
+            # Skip if any ignore regex matches this filepath
+            if any(r.search(filepath) for r in ignore_res):
                 continue
 
             # Check both extension and special filenames
@@ -646,19 +648,24 @@ def collect_code_files_in_dir(directory, ignore_pattern=None):
 # -------------------
 def main():
     parser = argparse.ArgumentParser(
-        description="ggrab: file1.py funcA funcB file2.py funcC => extracts code from each file or specific functions. Also supports directories."
+        description="ggrab: Extract code from files and directories. Usage examples:\n"
+                   "  ggrab file1.py funcA funcB file2.py funcC  # Extract specific functions\n"
+                   "  ggrab src/                                  # Extract all code files in directory\n"
+                   "  ggrab src/ --ignore '*.test.js' '*.spec.js'  # Extract files, ignoring test files"
     )
     items_arg = parser.add_argument(
         "items",
         nargs="*",
-        help="Files and function names intermixed. Each file remains 'active' until the next file."
+        help="Files, directories, and function names intermixed. For files, each remains 'active' until the next file/directory is specified."
     )
-    # the ignore flag
+    
+    # Updated ignore argument to support multiple patterns
     parser.add_argument(
-        "--ignore",
-        "-i",
-        default=None,
-        help="Regex to ignore files (by name or path) when scanning directories."
+        "--ignore", "-i",
+        action="extend",
+        nargs="+",
+        default=[],
+        help="One or more glob patterns to ignore when scanning directories. e.g. --ignore '*.test.*' '*.spec.*'"
     )
 
     if 'argcomplete' in sys.modules:
@@ -677,8 +684,8 @@ def main():
     current_file = None
     for item in args.items:
         if is_dir_candidate(item):
-            # Pass the ignore pattern when scanning directories
-            dir_files = collect_code_files_in_dir(item, ignore_pattern=args.ignore)
+            # Pass the ignore patterns list when scanning directories
+            dir_files = collect_code_files_in_dir(item, ignore_patterns=args.ignore)
             for f in dir_files:
                 results.setdefault(f, [])
             current_file = None  # Reset active file after directory

@@ -67,6 +67,9 @@ ggrab . -i vendor                  # Skip vendor directory
 ggrab . -i '*.generated.*'         # Skip generated files (quotes needed for *)
 ggrab . -i "**/__pycache__/**"     # Skip Python cache dirs (quotes needed for **)
 ggrab . -i '(dist|build)/*'        # Skip multiple dirs (quotes needed for special chars)
+
+# Multiple patterns are also supported
+ggrab . -i 'dist/*' -i 'build/*'                     # Can use multiple -i flags too
 ```
 
 Press `TAB` at any time for smart autocompletion:
